@@ -29,6 +29,10 @@ except Exception as e:
     settings = MockSettings()
 
 
+#import socket
+#socket.setdefaulttimeout(10)
+
+
 class MailProvider:
 
     def __init__(self,
@@ -93,15 +97,16 @@ class SmtpManager(MailProvider):
 class ImapManager(MailProvider):
     """IMAP клиент для почты"""
 
-    def __init__(self):
+    def __init__(self, timeout: int = 10):
         """Подключение к серверу
         """
         super().__init__()
         self.conn = None
         self.authorized = False
+        self.timeout = timeout
 
-        print('[IMAP]: connecting to', self.imap_host)
-        self.conn = imaplib.IMAP4_SSL(host=self.imap_host, port=self.imap_port)
+        print('[IMAP]: connecting to %s, timeout %s' % (self.imap_host, self.timeout))
+        self.conn = imaplib.IMAP4_SSL(host=self.imap_host, port=self.imap_port, timeout=self.timeout)
         print('[IMAP]:  connected')
         if self.auth() == 'OK':
             logger.info('[IMAP]: authorized')
