@@ -13,6 +13,7 @@ import smtplib
 from email.header import decode_header, Header
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from email.mime.application import MIMEApplication
 
 from managers.simple_logger import logger
 
@@ -64,20 +65,23 @@ class MailProvider:
 
 
 class SmtpManager(MailProvider):
-    """SMTP клиент для почты"""
-
-    def send_email(self, subject: str, body: str, to: list):
+    """SMTP клиент для почты
+    """
+    def send_email(self, subject: str, body: str, to: list, files: list = None):
         """Отправка письма
            :param subject: Заголовок письма
            :param body: Тело письма
            :param to: получатель письма
+           :param files: пути к файлам для отправки
         """
         cc = []
         bcc = []
         msg = MIMEMultipart()
-        msg.preamble = subject
+        #msg.preamble = subject # только ascii
         msg['Subject'] = subject
         msg['From'] = self.login
+        if isinstance(to, str):
+            to = [to]
         msg['To'] = ', '.join(to)
         if len(cc):
             msg['Cc'] = ', '.join(cc)
@@ -85,6 +89,15 @@ class SmtpManager(MailProvider):
             msg['Bcc'] = ', '.join(bcc)
 
         msg.attach(MIMEText(body, 'plain', 'utf-8'))
+
+        for f in files or []:
+            with open(f, 'rb') as file:
+                 part = MIMEApplication(
+                    file.read(),
+                    Name=f.split('/')[-1],
+                )
+            part['Content-Disposition'] = 'attachment; filename="%s"' % f.split('/')[-1]
+            msg.attach(part)
 
         server = smtplib.SMTP('%s:%s' % (self.smtp_host, self.smtp_port))
         server.starttls()
@@ -95,8 +108,8 @@ class SmtpManager(MailProvider):
 
 
 class ImapManager(MailProvider):
-    """IMAP клиент для почты"""
-
+    """IMAP клиент для почты
+    """
     def __init__(self, timeout: int = 10):
         """Подключение к серверу
         """
@@ -284,7 +297,6 @@ class ImapManager(MailProvider):
         if before:
             cond.append('BEFORE "%s"' % before.strftime('%d-%b-%Y'))
         return '(' + ' '.join(cond) + ')'
-
 
     def get_letters(self,
                     folder: str,
