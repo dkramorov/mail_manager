@@ -11,6 +11,7 @@ import imaplib
 import smtplib
 
 from email.header import decode_header, Header
+from email.message import EmailMessage
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.application import MIMEApplication
@@ -104,6 +105,32 @@ class SmtpManager(MailProvider):
         server.ehlo()
         server.login(self.login, self.passwd)
         server.sendmail(self.login, to, msg.as_string())
+        server.quit()
+
+    def send_email2(self, subject: str, body: str, to: list, files: list = None):
+        """Отправка письма через EmailMessage
+           :param subject: Заголовок письма
+           :param body: Тело письма
+           :param to: получатель письма
+           :param files: пути к файлам для отправки
+        """
+        msg = EmailMessage()
+        msg['Subject'] = subject
+        msg['From'] = self.login
+        if isinstance(to, str):
+            to = [to]
+        msg['To'] = to
+        msg.set_content(body)
+        for file_path in files:
+            with open(file_path, 'rb') as f:
+                file_data = f.read()
+                msg.add_attachment(file_data, maintype='application', subtype='octet-stream', filename=f.name.split('/')[-1])
+
+        server = smtplib.SMTP('%s:%s' % (self.smtp_host, self.smtp_port))
+        server.starttls()
+        server.ehlo()
+        server.login(self.login, self.passwd)
+        server.send_message(msg)
         server.quit()
 
 
