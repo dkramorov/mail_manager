@@ -11,6 +11,7 @@ import imaplib
 import smtplib
 
 from email.header import decode_header, Header
+from email.message import EmailMessage
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.application import MIMEApplication
@@ -91,12 +92,14 @@ class SmtpManager(MailProvider):
         msg.attach(MIMEText(body, 'plain', 'utf-8'))
 
         for f in files or []:
+            fname = f.split('/')[-1]
             with open(f, 'rb') as file:
                  part = MIMEApplication(
                     file.read(),
-                    Name=f.split('/')[-1],
+                    Name=fname,
                 )
-            part['Content-Disposition'] = 'attachment; filename="%s"' % f.split('/')[-1]
+            encoded_fname = Header(fname, 'utf-8').encode()
+            part['Content-Disposition'] = 'attachment; filename="%s"' % encoded_fname
             msg.attach(part)
 
         server = smtplib.SMTP('%s:%s' % (self.smtp_host, self.smtp_port))
